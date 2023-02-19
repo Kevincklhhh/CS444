@@ -38,11 +38,19 @@ char **tokenize(char *line)
   return tokens;
 }
 
+// signal handler for SIGINT
+void sigint_handler(int sig) {
+    printf("\n");
+    exit(EXIT_SUCCESS);
+}
 
 int main(int argc, char* argv[]) {
 	char  line[MAX_INPUT_SIZE];            
 	char  **tokens;              
-	int i;
+	int i;//stores child process status
+
+	// register signal handler for SIGINT
+    signal(SIGINT, sigint_handler);
 
 	FILE* fp;
 	if(argc == 2) {
@@ -66,16 +74,47 @@ int main(int argc, char* argv[]) {
 			scanf("%[^\n]", line);
 			getchar();
 		}
-		printf("Command entered: %s (remove this debug output later)\n", line);
+		//printf("Command entered: %s (remove this debug output later)\n", line);
 		/* END: TAKING INPUT */
 
 		line[strlen(line)] = '\n'; //terminate with new line
 		tokens = tokenize(line);
-   
-       //do whatever you want with the commands, here we just print them
+		
+		if (strcmp(tokens[0],"cd")==0){
+			if (tokens[1]==NULL){
+				chdir(getenv("HOME"));
+			}
+			else {
+				if (chdir(tokens[1]) != 0) {
+                    printf("Shell: Incorrect command\n");
+                }
+			}
+			continue;
+		}
+
+		// fork a child process
+        pid_t pid = fork();
+		
+		if (pid == 0) {
+            // child process
+            execvp(tokens[0], tokens);
+            // execvp returns only if an error occurs
+            perror("execvp");
+            exit(EXIT_FAILURE);
+        } else if (pid < 0) {
+            // error occurred
+            perror("fork");
+        }else {
+            // parent process
+            wait(&i);
+        }
+		
+		if (WIFSIGNALED(i) && WTERMSIG(i) == SIGSEGV) {
+            printf("Shell: Incorrect command\n");
+        }
 
 		for(i=0;tokens[i]!=NULL;i++){
-			printf("found token %s (remove this debug output later)\n", tokens[i]);
+			//printf("found token %s (remove this debug output later)\n", tokens[i]);
 		}
        
 		// Freeing the allocated memory	
