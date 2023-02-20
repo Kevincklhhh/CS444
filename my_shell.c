@@ -102,10 +102,10 @@ int main(int argc, char* argv[]) {
             }
         }
 
-		for(i=0;tokens[i]!=NULL;i++){
-			printf("found token %s (remove this debug output later)\n", tokens[i]);
-		}
-		printf("%d",is_background);
+		// for(i=0;tokens[i]!=NULL;i++){
+		// 	printf("found token %s (remove this debug output later)\n", tokens[i]);
+		// }
+		// printf("%d",is_background);
 
 		if (strcmp(tokens[0],"cd")==0){
 			if (tokens[1]==NULL){
