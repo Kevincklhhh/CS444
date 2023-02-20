@@ -65,7 +65,6 @@ int main(int argc, char* argv[]) {
 
 	while(1) {		
 		
-
 		/* BEGIN: TAKING INPUT */
 		bzero(line, sizeof(line));
 		if(argc == 2) { // batch mode
@@ -84,7 +83,7 @@ int main(int argc, char* argv[]) {
             printf("Shell: Background process finished\n");
             child_pid = waitpid(-1, &status, WNOHANG);
         }
-		
+
 		line[strlen(line)] = '\n'; //terminate with new line
 		tokens = tokenize(line);
 
@@ -149,7 +148,6 @@ int main(int argc, char* argv[]) {
 				pid_t pid = fork();
 				if (pid == 0) {
 					execvp(tokens[command_indices[j]], &tokens[command_indices[j]]);
-					perror("exec");
 					exit(1);
 				} else if (pid < 0) {
 					perror("fork");
@@ -176,7 +174,6 @@ int main(int argc, char* argv[]) {
                 pid_t pid = fork();
                 if (pid == 0) {
                     execvp(tokens[command_indices[j]], &tokens[command_indices[j]]);
-                    perror("exec");
                     exit(1);
                 } else if (pid < 0) {
                     perror("fork");
