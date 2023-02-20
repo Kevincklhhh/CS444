@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
 			}
 			else {
 				if (chdir(tokens[1]) != 0) {
-                     perror("chdir");
+                    printf("Shell: Incorrect command\n");
                 }
 			}
 			continue;
@@ -102,7 +102,6 @@ int main(int argc, char* argv[]) {
 				printf("Shell: Incorrect command\n");
 			};
             // execvp returns only if an error occurs
-            perror("execvp");
             exit(EXIT_FAILURE);
         } else if (pid < 0) {
             // error occurred
