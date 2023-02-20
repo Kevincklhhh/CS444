@@ -47,8 +47,9 @@ void sigint_handler(int sig) {
 
 int main(int argc, char* argv[]) {
 	char  line[MAX_INPUT_SIZE];            
-	char  **tokens;              
-	int i;//stores child process status
+	char  **tokens;    
+	int i;          
+	int status;//stores child process status
 
 	// register signal handler for SIGINT
     signal(SIGINT, sigint_handler);
@@ -84,22 +85,28 @@ int main(int argc, char* argv[]) {
 		int is_background = 0;
         int is_sequence = 0;
         int is_parallel = 0;
-        for (int j = 0; j < i; j++) {
-            if (strcmp(tokens[j], "&") == 0) {
+
+        for (i = 0; tokens[i]!=NULL; i++) {
+            if (strcmp(tokens[i], "&") == 0) {
                 is_background = 1;
-                tokens[j] = NULL;
+                tokens[i] = NULL;
                 break;
-            } else if (strcmp(tokens[j], "&&") == 0) {
+            } else if (strcmp(tokens[i], "&&") == 0) {
                 is_sequence = 1;
-                tokens[j] = NULL;
+                tokens[i] = NULL;
                 break;
-            } else if (strcmp(tokens[j], "&&&") == 0) {
+            } else if (strcmp(tokens[i], "&&&") == 0) {
                 is_parallel = 1;
-                tokens[j] = NULL;
+                tokens[i] = NULL;
                 break;
             }
         }
-		
+
+		for(i=0;tokens[i]!=NULL;i++){
+			printf("found token %s (remove this debug output later)\n", tokens[i]);
+		}
+		printf("%d",is_background);
+
 		if (strcmp(tokens[0],"cd")==0){
 			if (tokens[1]==NULL){
 				chdir(getenv("HOME"));
@@ -144,8 +151,8 @@ int main(int argc, char* argv[]) {
 				}
 			}
 			for (int k = 0; k < num_commands; k++) {
-				waitpid(pids[k], &i, 0);
-				if (WIFEXITED(i) && WEXITSTATUS(i) == 0) {
+				waitpid(pids[k], &status, 0);
+				if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
 						// command completed successfully
 				} else {
 					fprintf(stderr, "Shell: Incorrect command\n");
@@ -168,16 +175,17 @@ int main(int argc, char* argv[]) {
 				perror("fork");
 			}else {
 				// parent process
-				wait(&i);
+				wait(&status);
 			}
 			
-			if (WIFSIGNALED(i) && WTERMSIG(i) == SIGSEGV) {
+			if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV) {
 				printf("Shell: Incorrect command\n");
 			}
 		}
         
 
        
+
 		// Freeing the allocated memory	
 		for(i=0;tokens[i]!=NULL;i++){
 			free(tokens[i]);
