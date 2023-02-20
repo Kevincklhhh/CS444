@@ -86,9 +86,10 @@ int main(int argc, char* argv[]) {
 				chdir(getenv("HOME"));
 			}
 			else {
-                // change to the specified directory
-                chdir(tokens[1]);
-            }
+				if (chdir(tokens[1]) != 0) {
+                     perror("chdir");
+                }
+			}
 			continue;
 		}
 
@@ -97,7 +98,9 @@ int main(int argc, char* argv[]) {
 		
 		if (pid == 0) {
             // child process
-            execvp(tokens[0], tokens);
+            if (execvp(tokens[0], tokens)<0){
+				printf("Shell: Incorrect command\n");
+			};
             // execvp returns only if an error occurs
             perror("execvp");
             exit(EXIT_FAILURE);
