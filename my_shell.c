@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
 			if (pid == 0) {
 				// child process
 				if (execvp(tokens[0], tokens)<0){
-					printf("Shell: Incorrect command\n");
+					printf("is it here: Incorrect command\n");
 				};
 				// execvp returns only if an error occurs
 				exit(EXIT_FAILURE);
