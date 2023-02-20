@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
 	char  **tokens;    
 	int i;          
 	int status;//stores child process status
-
+    pid_t child_pid;
 	// register signal handler for SIGINT
     signal(SIGINT, sigint_handler);
 
@@ -63,7 +63,9 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	while(1) {			
+	while(1) {		
+		
+
 		/* BEGIN: TAKING INPUT */
 		bzero(line, sizeof(line));
 		if(argc == 2) { // batch mode
@@ -76,9 +78,13 @@ int main(int argc, char* argv[]) {
 			scanf("%[^\n]", line);
 			getchar();
 		}
-		//printf("Command entered: %s (remove this debug output later)\n", line);
-		/* END: TAKING INPUT */
-
+		
+		child_pid = waitpid(-1, &status, WNOHANG);
+        while (child_pid > 0) {
+            printf("Shell: Background process finished\n");
+            child_pid = waitpid(-1, &status, WNOHANG);
+        }
+		
 		line[strlen(line)] = '\n'; //terminate with new line
 		tokens = tokenize(line);
 
@@ -86,26 +92,34 @@ int main(int argc, char* argv[]) {
         int is_sequence = 0;
         int is_parallel = 0;
 
+		int command_indices[64];//record the index of starting of a command in the tokens array
+		int num_commands = 0;
+		command_indices[num_commands] = 0;
+		
         for (i = 0; tokens[i]!=NULL; i++) {
             if (strcmp(tokens[i], "&") == 0) {
                 is_background = 1;
                 tokens[i] = NULL;
-                break;
             } else if (strcmp(tokens[i], "&&") == 0) {
                 is_sequence = 1;
                 tokens[i] = NULL;
-                break;
+				num_commands++;
+				command_indices[num_commands] = i+1;
             } else if (strcmp(tokens[i], "&&&") == 0) {
                 is_parallel = 1;
                 tokens[i] = NULL;
-                break;
+				num_commands++;
+				command_indices[num_commands] = i+1;
             }
         }
-
-		// for(i=0;tokens[i]!=NULL;i++){
-		// 	printf("found token %s (remove this debug output later)\n", tokens[i]);
+		// for (int j = 0; j<= num_commands; j++){
+		// 		printf("%s",tokens[command_indices[j]]);
+				
 		// }
-		// printf("%d",is_background);
+		if (tokens[0] == NULL) {
+        // Empty command - just display prompt again
+        	continue;
+    	}
 
 		if (strcmp(tokens[0],"cd")==0){
 			if (tokens[1]==NULL){
@@ -118,7 +132,7 @@ int main(int argc, char* argv[]) {
 			}
 			continue;
 		}
-		
+
 		if(is_background){
 			pid_t pid = fork();// fork a child process
             if (pid == 0) {
@@ -130,43 +144,64 @@ int main(int argc, char* argv[]) {
                 perror("fork");
             }
 		}else if(is_parallel){
-			int j = 0;
-			int num_commands = 0;
-			while (tokens[j] != NULL) {
-				num_commands++;
-				j++;
-			}
 			pid_t pids[num_commands];
-			for (int k = 0; k < num_commands; k++) {
+			for (int j = 0; j < num_commands; j++) {
 				pid_t pid = fork();
 				if (pid == 0) {
-					execvp(tokens[k], &tokens[k]);
+					execvp(tokens[command_indices[j]], &tokens[command_indices[j]]);
 					perror("exec");
 					exit(1);
 				} else if (pid < 0) {
 					perror("fork");
 					exit(1);
 				} else {
-					pids[k] = pid;
+					pids[j] = pid;
 				}
 			}
-			for (int k = 0; k < num_commands; k++) {
-				waitpid(pids[k], &status, 0);
+			for (int j = 0; j < num_commands; j++) {
+				waitpid(pids[j], &status, 0);
 				if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-						// command completed successfully
+					// command completed successfully
 				} else {
 					fprintf(stderr, "Shell: Incorrect command\n");
 				}
 			}
 
 		}else if (is_sequence){
-
+			int success = 1;
+            for (int j = 0; j<= num_commands; j++){
+				//printf("%s",tokens[command_indices[j]]);
+				//printf("%s",&tokens[command_indices[j]]);
+				success = 1;
+                pid_t pid = fork();
+                if (pid == 0) {
+                    execvp(tokens[command_indices[j]], &tokens[command_indices[j]]);
+                    perror("exec");
+                    exit(1);
+                } else if (pid < 0) {
+                    perror("fork");
+                    exit(1);
+                } else {
+                    wait(&status);
+        			if (WIFEXITED(status)) {
+            			int exit_status = WEXITSTATUS(status);
+            		if (exit_status != 0) {
+                		success = 0;
+            		}
+       				} else {
+            			success = 0;
+        			}
+                }
+				if (!success) {
+        			printf("Shell: Incorrect command\n");
+    			}
+			}
 		}else{
 			pid_t pid = fork();
 			if (pid == 0) {
 				// child process
 				if (execvp(tokens[0], tokens)<0){
-					printf("is it here: Incorrect command\n");
+					printf("Shell: Incorrect command\n");
 				};
 				// execvp returns only if an error occurs
 				exit(EXIT_FAILURE);
@@ -182,8 +217,7 @@ int main(int argc, char* argv[]) {
 				printf("Shell: Incorrect command\n");
 			}
 		}
-        
-
+    
        
 
 		// Freeing the allocated memory	
