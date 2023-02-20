@@ -80,6 +80,25 @@ int main(int argc, char* argv[]) {
 
 		line[strlen(line)] = '\n'; //terminate with new line
 		tokens = tokenize(line);
+
+		int is_background = 0;
+        int is_sequence = 0;
+        int is_parallel = 0;
+        for (int j = 0; j < i; j++) {
+            if (strcmp(tokens[j], "&") == 0) {
+                is_background = 1;
+                tokens[j] = NULL;
+                break;
+            } else if (strcmp(tokens[j], "&&") == 0) {
+                is_sequence = 1;
+                tokens[j] = NULL;
+                break;
+            } else if (strcmp(tokens[j], "&&&") == 0) {
+                is_parallel = 1;
+                tokens[j] = NULL;
+                break;
+            }
+        }
 		
 		if (strcmp(tokens[0],"cd")==0){
 			if (tokens[1]==NULL){
@@ -92,32 +111,72 @@ int main(int argc, char* argv[]) {
 			}
 			continue;
 		}
-
-		// fork a child process
-        pid_t pid = fork();
 		
-		if (pid == 0) {
-            // child process
-            if (execvp(tokens[0], tokens)<0){
+		if(is_background){
+			pid_t pid = fork();// fork a child process
+            if (pid == 0) {
+                if (execvp(tokens[0], tokens)<0){
+					printf("Shell: Incorrect command\n");
+					exit(EXIT_FAILURE); 
+				};
+            } else if (pid < 0) {
+                perror("fork");
+            }
+		}else if(is_parallel){
+			int j = 0;
+			int num_commands = 0;
+			while (tokens[j] != NULL) {
+				num_commands++;
+				j++;
+			}
+			pid_t pids[num_commands];
+			for (int k = 0; k < num_commands; k++) {
+				pid_t pid = fork();
+				if (pid == 0) {
+					execvp(tokens[k], &tokens[k]);
+					perror("exec");
+					exit(1);
+				} else if (pid < 0) {
+					perror("fork");
+					exit(1);
+				} else {
+					pids[k] = pid;
+				}
+			}
+			for (int k = 0; k < num_commands; k++) {
+				waitpid(pids[k], &i, 0);
+				if (WIFEXITED(i) && WEXITSTATUS(i) == 0) {
+						// command completed successfully
+				} else {
+					fprintf(stderr, "Shell: Incorrect command\n");
+				}
+			}
+
+		}else if (is_sequence){
+
+		}else{
+			pid_t pid = fork();
+			if (pid == 0) {
+				// child process
+				if (execvp(tokens[0], tokens)<0){
+					printf("Shell: Incorrect command\n");
+				};
+				// execvp returns only if an error occurs
+				exit(EXIT_FAILURE);
+			} else if (pid < 0) {
+				// error occurred
+				perror("fork");
+			}else {
+				// parent process
+				wait(&i);
+			}
+			
+			if (WIFSIGNALED(i) && WTERMSIG(i) == SIGSEGV) {
 				printf("Shell: Incorrect command\n");
-			};
-            // execvp returns only if an error occurs
-            exit(EXIT_FAILURE);
-        } else if (pid < 0) {
-            // error occurred
-            perror("fork");
-        }else {
-            // parent process
-            wait(&i);
-        }
-		
-		if (WIFSIGNALED(i) && WTERMSIG(i) == SIGSEGV) {
-            printf("Shell: Incorrect command\n");
-        }
-
-		for(i=0;tokens[i]!=NULL;i++){
-			//printf("found token %s (remove this debug output later)\n", tokens[i]);
+			}
 		}
+        
+
        
 		// Freeing the allocated memory	
 		for(i=0;tokens[i]!=NULL;i++){
