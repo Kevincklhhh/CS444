@@ -86,10 +86,9 @@ int main(int argc, char* argv[]) {
 				chdir(getenv("HOME"));
 			}
 			else {
-				if (chdir(tokens[1]) != 0) {
-                    printf("Shell: Incorrect command\n");
-                }
-			}
+                // change to the specified directory
+                chdir(tokens[1]);
+            }
 			continue;
 		}
 
