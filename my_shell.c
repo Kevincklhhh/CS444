@@ -237,6 +237,7 @@ int main(int argc, char *argv[])
 				if (pid == 0)
 				{ // child process execute
 					execvp(tokens[command_indices[j]], &tokens[command_indices[j]]);
+					printf("Shell: Incorrect command\n");
 					exit(1);
 				}
 				else if (pid < 0)
@@ -246,17 +247,16 @@ int main(int argc, char *argv[])
 				}
 				else
 				{ // parent process stores pid
-					fg_pids[num_fg_pids] = pid;
-					num_fg_pids++;
+					fg_pids[num_fg_pids++] = pid;
 				}
 			}
 			for (int i = 0; i < num_fg_pids; i++)
 			{
 				waitpid(fg_pids[i], &status, 0);
-				if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)
-				{
-					printf("Shell: Incorrect command\n");
-				}
+				// if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)
+				// {
+				// 	printf("Shell: Incorrect command\n");
+				// }
 				// Remove the PID from the array
 				for (int j = i; j < num_fg_pids - 1; j++)
 				{
