@@ -51,6 +51,12 @@ char **tokenize(char *line)
 // signal handler for SIGINT
 void sigint_handler(int sig)
 {
+	// printf("ctrlc pressed, terminating process ids:\n");
+	// for (int i = 0; i < num_fg_pids; i++)
+	// {
+	// 	printf("%d\n", fg_pids[i]);
+	// }
+	sigint_received = 1;
 	if (num_fg_pids == 0)
 	{
 		// No foreground processes to terminate
@@ -62,7 +68,6 @@ void sigint_handler(int sig)
 		// Terminate the current foreground process
 		printf("\n");
 		kill(fg_pids[0], SIGINT);
-		sigint_received = 1;
 	}
 	else
 	{
@@ -73,7 +78,6 @@ void sigint_handler(int sig)
 		{
 			kill(fg_pids[i], SIGINT);
 		}
-		sigint_received = 1;
 	}
 }
 
@@ -208,6 +212,7 @@ int main(int argc, char *argv[])
 			pid_t pid = fork(); // fork a child process
 			if (pid == 0)
 			{
+				setpgid(0, 0);
 				if (execvp(tokens[0], tokens) < 0)
 				{
 					printf("Shell: Incorrect command\n");
@@ -245,27 +250,23 @@ int main(int argc, char *argv[])
 					num_fg_pids++;
 				}
 			}
-			for (int j = 0; j < num_fg_pids; j++)
+			for (int i = 0; i < num_fg_pids; i++)
 			{
-				waitpid(fg_pids[j], &status, 0);
-				if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+				waitpid(fg_pids[i], &status, 0);
+				// Remove the PID from the array
+				for (int j = i; j < num_fg_pids - 1; j++)
 				{
-					// command completed successfully
+					fg_pids[j] = fg_pids[j + 1];
 				}
-				else
-				{
-					fprintf(stderr, "Shell: Incorrect command\n");
-				}
+				num_fg_pids--;
 			}
 		}
 		else if (is_sequence)
 		{
-
 			for (int j = 0; j <= num_commands; j++)
 			{
 				if (sigint_received)
 				{
-					printf("Shell: Command cancelled\n");
 					sigint_received = 0;
 					break;
 				}
@@ -282,7 +283,14 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
+					fg_pids[num_fg_pids] = pid;
+					num_fg_pids++;
 					wait(&status);
+					for (int j = 0; j < num_fg_pids - 1; j++)
+					{
+						fg_pids[j] = fg_pids[j + 1];
+					}
+					num_fg_pids--;
 					if (WIFEXITED(status))
 					{
 						int exit_status = WEXITSTATUS(status);
@@ -290,10 +298,6 @@ int main(int argc, char *argv[])
 						{
 							printf("Shell: Incorrect command\n");
 						}
-					}
-					else
-					{
-						printf("Shell: Incorrect command\n");
 					}
 				}
 			}
@@ -324,7 +328,14 @@ int main(int argc, char *argv[])
 			else
 			{
 				// parent process
+				fg_pids[num_fg_pids] = pid;
+				num_fg_pids++;
 				wait(&status);
+				for (int j = 0; j < num_fg_pids - 1; j++)
+				{
+					fg_pids[j] = fg_pids[j + 1];
+				}
+				num_fg_pids--;
 			}
 
 			if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)
