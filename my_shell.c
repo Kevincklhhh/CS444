@@ -209,6 +209,7 @@ int main(int argc, char *argv[])
 
 		if (is_background)
 		{
+			printf("executing command as background");
 			pid_t pid = fork(); // fork a child process
 			if (pid == 0)
 			{
@@ -231,7 +232,7 @@ int main(int argc, char *argv[])
 		}
 		else if (is_parallel)
 		{
-			for (int j = 0; j < num_commands; j++)
+			for (int j = 0; j <= num_commands; j++)
 			{ // iterate over all parsed commands and arguments
 				pid_t pid = fork();
 				if (pid == 0)
@@ -287,14 +288,7 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
-					fg_pids[num_fg_pids] = pid;
-					num_fg_pids++;
 					wait(&status);
-					for (int j = 0; j < num_fg_pids - 1; j++)
-					{
-						fg_pids[j] = fg_pids[j + 1];
-					}
-					num_fg_pids--;
 					if (WIFEXITED(status))
 					{
 						int exit_status = WEXITSTATUS(status);
@@ -313,6 +307,7 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
+			printf("executing single command in foreground\n");
 			pid_t pid = fork();
 			if (pid == 0)
 			{
@@ -332,14 +327,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				// parent process
-				fg_pids[num_fg_pids] = pid;
-				num_fg_pids++;
 				wait(&status);
-				for (int j = 0; j < num_fg_pids - 1; j++)
-				{
-					fg_pids[j] = fg_pids[j + 1];
-				}
-				num_fg_pids--;
 			}
 
 			if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)
