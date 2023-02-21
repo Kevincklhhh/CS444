@@ -81,11 +81,14 @@ int main(int argc, char* argv[]) {
 			scanf("%[^\n]", line);
 			getchar();
 		}
-		
+		for (int i = 0; i < num_bg_pids; i++) {
+        	printf("%d ", bg_pids[i]);
+    	}
+
 			 for (int i = 0; i < num_bg_pids; i++) {
         		if (waitpid(bg_pids[i], &status, WNOHANG) < 0) {
 					printf("Shell: Background process finished\n");
-           	 	// Remove the PID from the array
+           	 		// Remove the PID from the array
             		for (int j = i; j < num_bg_pids - 1; j++) {
                 		bg_pids[j] = bg_pids[j+1];
             		}
