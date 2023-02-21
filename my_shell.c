@@ -54,6 +54,7 @@ int main(int argc, char* argv[]) {
 	int i;          
 	int status;//stores child process status
     pid_t child_pid;
+
 	// register signal handler for SIGINT
     signal(SIGINT, sigint_handler);
 
@@ -82,6 +83,7 @@ int main(int argc, char* argv[]) {
 		}
 		
 		child_pid = waitpid(-1, &status, WNOHANG);
+		
         while (child_pid > 0) {
             printf("Shell: Background process finished\n");
 			 for (int i = 0; i < num_bg_pids; i++) {
@@ -145,6 +147,7 @@ int main(int argc, char* argv[]) {
 		}else if (strcmp(tokens[0], "exit") == 0) {
             //Exit command - terminate all running processes
             for (int i = 0; i < num_bg_pids; i++) {
+				printf("%d",bg_pids[i]);
                 kill(bg_pids[i], SIGTERM);
             }
             free(tokens);
