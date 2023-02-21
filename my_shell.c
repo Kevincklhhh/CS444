@@ -253,6 +253,10 @@ int main(int argc, char *argv[])
 			for (int i = 0; i < num_fg_pids; i++)
 			{
 				waitpid(fg_pids[i], &status, 0);
+				if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)
+				{
+					printf("Shell: Incorrect command\n");
+				}
 				// Remove the PID from the array
 				for (int j = i; j < num_fg_pids - 1; j++)
 				{
