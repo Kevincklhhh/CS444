@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
 			// Exit command - terminate all running processes
 			for (int i = 0; i < num_bg_pids; i++)
 			{
-				printf("%d", bg_pids[i]);
+				// printf("%d", bg_pids[i]);
 				kill(bg_pids[i], SIGTERM);
 			}
 			free(tokens);
@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-				printf("background process %d started\n", pid);
+				// printf("background process %d started\n", pid);
 				bg_pids[num_bg_pids++] = pid;
 			}
 		}
