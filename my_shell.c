@@ -82,21 +82,17 @@ int main(int argc, char* argv[]) {
 			getchar();
 		}
 		
-		child_pid = waitpid(-1, &status, WNOHANG);
-		
-        while (child_pid > 0) {
-            printf("Shell: Background process finished\n");
 			 for (int i = 0; i < num_bg_pids; i++) {
-        		if (bg_pids[i] == child_pid) {
+        		if (waitpid(bg_pids[i], &status, WNOHANG) < 0) {
+					printf("Shell: Background process finished\n");
            	 	// Remove the PID from the array
-            	for (int j = i; j < num_bg_pids - 1; j++) {
-                	bg_pids[j] = bg_pids[j+1];
-            	}
+            		for (int j = i; j < num_bg_pids - 1; j++) {
+                		bg_pids[j] = bg_pids[j+1];
+            		}
             	num_bg_pids--;
         }
     }
-            child_pid = waitpid(-1, &status, WNOHANG);
-        }
+        
 
 		line[strlen(line)] = '\n'; //terminate with new line
 		tokens = tokenize(line);
