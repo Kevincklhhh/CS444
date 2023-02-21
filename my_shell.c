@@ -8,7 +8,11 @@
 #define MAX_INPUT_SIZE 1024
 #define MAX_TOKEN_SIZE 64
 #define MAX_NUM_TOKENS 64
-
+pid_t fg_pids[MAX_TOKEN_SIZE];
+int num_fg_pids = 0;
+int bg_pids[MAX_TOKEN_SIZE];
+int num_bg_pids = 0;
+int sigint_received = 0;
 /* Splits the string by space and returns the array of tokens
  *
  */
@@ -47,14 +51,35 @@ char **tokenize(char *line)
 // signal handler for SIGINT
 void sigint_handler(int sig)
 {
-	printf("\n");
-	exit(EXIT_SUCCESS);
+	if (num_fg_pids == 0)
+	{
+		// No foreground processes to terminate
+		return;
+	}
+
+	if (num_fg_pids == 1)
+	{
+		// Terminate the current foreground process
+		printf("\n");
+		kill(fg_pids[0], SIGINT);
+		sigint_received = 1;
+	}
+	else
+	{
+		// Terminate all foreground processes
+		printf("\n");
+		int i;
+		for (i = 0; i < num_fg_pids; i++)
+		{
+			kill(fg_pids[i], SIGINT);
+		}
+		sigint_received = 1;
+	}
 }
 
 int main(int argc, char *argv[])
 {
-	int bg_pids[MAX_TOKEN_SIZE];
-	int num_bg_pids = 0;
+
 	char line[MAX_INPUT_SIZE];
 	char **tokens;
 	int i;
@@ -77,7 +102,6 @@ int main(int argc, char *argv[])
 
 	while (1)
 	{
-
 		/* BEGIN: TAKING INPUT */
 		bzero(line, sizeof(line));
 		if (argc == 2)
@@ -202,28 +226,28 @@ int main(int argc, char *argv[])
 		}
 		else if (is_parallel)
 		{
-			pid_t pids[num_commands];
 			for (int j = 0; j < num_commands; j++)
-			{
+			{ // iterate over all parsed commands and arguments
 				pid_t pid = fork();
 				if (pid == 0)
-				{
+				{ // child process execute
 					execvp(tokens[command_indices[j]], &tokens[command_indices[j]]);
 					exit(1);
 				}
 				else if (pid < 0)
-				{
+				{ // failed to fork
 					perror("fork");
 					exit(1);
 				}
 				else
-				{
-					pids[j] = pid;
+				{ // parent process stores pid
+					fg_pids[num_fg_pids] = pid;
+					num_fg_pids++;
 				}
 			}
-			for (int j = 0; j < num_commands; j++)
+			for (int j = 0; j < num_fg_pids; j++)
 			{
-				waitpid(pids[j], &status, 0);
+				waitpid(fg_pids[j], &status, 0);
 				if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
 				{
 					// command completed successfully
@@ -236,12 +260,15 @@ int main(int argc, char *argv[])
 		}
 		else if (is_sequence)
 		{
-			int success = 1;
+
 			for (int j = 0; j <= num_commands; j++)
 			{
-				// printf("%s",tokens[command_indices[j]]);
-				// printf("%s",&tokens[command_indices[j]]);
-				success = 1;
+				if (sigint_received)
+				{
+					printf("Shell: Command cancelled\n");
+					sigint_received = 0;
+					break;
+				}
 				pid_t pid = fork();
 				if (pid == 0)
 				{
@@ -261,18 +288,19 @@ int main(int argc, char *argv[])
 						int exit_status = WEXITSTATUS(status);
 						if (exit_status != 0)
 						{
-							success = 0;
+							printf("Shell: Incorrect command\n");
 						}
 					}
 					else
 					{
-						success = 0;
+						printf("Shell: Incorrect command\n");
 					}
 				}
-				if (!success)
-				{
-					printf("Shell: Incorrect command\n");
-				}
+			}
+			if (sigint_received)
+			{
+				sigint_received = 0;
+				continue;
 			}
 		}
 		else
