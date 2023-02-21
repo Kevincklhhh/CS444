@@ -45,7 +45,10 @@ void sigint_handler(int sig) {
     exit(EXIT_SUCCESS);
 }
 
+
 int main(int argc, char* argv[]) {
+	int bg_pids[MAX_TOKEN_SIZE];
+	int num_bg_pids = 0;
 	char  line[MAX_INPUT_SIZE];            
 	char  **tokens;    
 	int i;          
@@ -81,6 +84,15 @@ int main(int argc, char* argv[]) {
 		child_pid = waitpid(-1, &status, WNOHANG);
         while (child_pid > 0) {
             printf("Shell: Background process finished\n");
+			 for (int i = 0; i < num_bg_pids; i++) {
+        		if (bg_pids[i] == child_pid) {
+           	 	// Remove the PID from the array
+            	for (int j = i; j < num_bg_pids - 1; j++) {
+                	bg_pids[j] = bg_pids[j+1];
+            	}
+            	num_bg_pids--;
+        }
+    }
             child_pid = waitpid(-1, &status, WNOHANG);
         }
 
@@ -91,7 +103,7 @@ int main(int argc, char* argv[]) {
         int is_sequence = 0;
         int is_parallel = 0;
 
-		int command_indices[64];//record the index of starting of a command in the tokens array
+		int command_indices[MAX_NUM_TOKENS];//record the index of starting of a command in the tokens array
 		int num_commands = 0;
 		command_indices[num_commands] = 0;
 		
@@ -130,11 +142,19 @@ int main(int argc, char* argv[]) {
                 }
 			}
 			continue;
-		}
+		}else if (strcmp(tokens[0], "exit") == 0) {
+            //Exit command - terminate all running processes
+            for (int i = 0; i < num_bg_pids; i++) {
+                kill(bg_pids[i], SIGTERM);
+            }
+            free(tokens);
+            exit(0);
+        }
 
 		if(is_background){
 			pid_t pid = fork();// fork a child process
             if (pid == 0) {
+				bg_pids[num_bg_pids++] = pid;
                 if (execvp(tokens[0], tokens)<0){
 					printf("Shell: Incorrect command\n");
 					exit(EXIT_FAILURE); 
@@ -214,8 +234,7 @@ int main(int argc, char* argv[]) {
 				printf("Shell: Incorrect command\n");
 			}
 		}
-    
-       
+
 
 		// Freeing the allocated memory	
 		for(i=0;tokens[i]!=NULL;i++){
