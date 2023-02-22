@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
 			for (int i = 0; i <= num_fg_pids; i++)
 			{
 				// printf("waiting for  fgpid %d\n", fg_pids[i]);
-				// waitpid(fg_pids[i], &status, 0);
+				waitpid(fg_pids[i], &status, 0);
 				// if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)
 				// {
 				// 	printf("Shell: Incorrect command\n");
