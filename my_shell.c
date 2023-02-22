@@ -42,12 +42,25 @@ char **tokenize(char *line)
 			token[tokenIndex++] = readChar;
 		}
 	}
-
 	free(token);
 	tokens[tokenNo] = NULL;
 	return tokens;
 }
-
+void reap_child(status)
+{
+	for (int i = 0; i < num_bg_pids; i++)
+	{
+		if (waitpid(bg_pids[i], &status, WNOHANG) < 0)
+		{
+			printf("Shell: Background process finished\n");
+			for (int j = i; j < num_bg_pids - 1; j++)
+			{
+				bg_pids[j] = bg_pids[j + 1];
+			}
+			num_bg_pids--;
+		}
+	}
+}
 // signal handler for SIGINT
 void sigint_handler(int sig)
 {
@@ -112,19 +125,7 @@ int main(int argc, char *argv[])
 			getchar();
 		}
 
-		for (int i = 0; i < num_bg_pids; i++)
-		{
-			if (waitpid(bg_pids[i], &status, WNOHANG) < 0)
-			{
-				printf("Shell: Background process finished\n");
-				// Remove the PID from the array
-				for (int j = i; j < num_bg_pids - 1; j++)
-				{
-					bg_pids[j] = bg_pids[j + 1];
-				}
-				num_bg_pids--;
-			}
-		}
+		reap_child(status); // reap finished background processes
 
 		line[strlen(line)] = '\n'; // terminate with new line
 		tokens = tokenize(line);
@@ -244,6 +245,7 @@ int main(int argc, char *argv[])
 					continue;
 				}
 				waitpid(fg_pids[i], &status, 0);
+
 				fg_pids[i] = 0;
 				num_fg_pids--;
 			}
