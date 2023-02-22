@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99
+CFLAGS = -Wall -Wextra
 
 my_shell: my_shell.o
 	$(CC) $(CFLAGS) -o $@ $^
