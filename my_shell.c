@@ -8,11 +8,11 @@
 #define MAX_INPUT_SIZE 1024
 #define MAX_TOKEN_SIZE 64
 #define MAX_NUM_TOKENS 64
-pid_t fg_pids[MAX_TOKEN_SIZE];
+int fg_pids[MAX_TOKEN_SIZE]; // record running foreground processes
 int num_fg_pids = 0;
-int bg_pids[MAX_TOKEN_SIZE];
+int bg_pids[MAX_TOKEN_SIZE]; // record running background processes
 int num_bg_pids = 0;
-int sigint_received = 0;
+int sigint_received = 0; // indicate if ctrl c is pressed
 /* Splits the string by space and returns the array of tokens
  *
  */
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 		tokens = tokenize(line);
 
 		sigint_received = 0;
-		int is_background = 0;
+		int is_background = 0; // they indicate if the user input is background, sequence or parallel
 		int is_sequence = 0;
 		int is_parallel = 0;
 		int command_indices[MAX_NUM_TOKENS]; // record the index of starting of a command in the tokens array
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
 		command_indices[0] = 0;
 
 		for (i = 0; tokens[i] != NULL; i++)
-		{
+		{ // parse the commands. If there are multiple commands, record the start index of a command in the tokens array
 			if (strcmp(tokens[i], "&") == 0)
 			{
 				is_background = 1;
@@ -187,10 +187,14 @@ int main(int argc, char *argv[])
 			{
 				kill(bg_pids[i], SIGTERM);
 			}
+			// Free dynamically allocated memory
+			for (i = 0; tokens[i] != NULL; i++)
+			{
+				free(tokens[i]);
+			}
 			free(tokens);
 			exit(0);
 		}
-
 		if (is_background)
 		{
 			pid_t pid = fork(); // fork a child process
@@ -208,8 +212,7 @@ int main(int argc, char *argv[])
 				perror("fork");
 			}
 			else
-			{
-				// printf("background process %d started\n", pid);
+			{ // parent process records running background processes
 				bg_pids[num_bg_pids++] = pid;
 			}
 		}
@@ -287,6 +290,7 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
+			// single command running in foreground
 			pid_t pid = fork();
 			if (pid == 0)
 			{ // child process
@@ -305,13 +309,7 @@ int main(int argc, char *argv[])
 			{ // parent process
 				wait(&status);
 			}
-
-			// if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)
-			// {
-			// 	printf("Shell: Incorrect command\n");
-			// }
 		}
-
 		// Freeing the allocated memory
 		for (i = 0; tokens[i] != NULL; i++)
 		{
