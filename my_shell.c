@@ -106,6 +106,12 @@ int main(int argc, char *argv[])
 
 	while (1)
 	{
+		printf("there is %d stored fg processes\n", num_fg_pids);
+		for (i = 0; i < num_fg_pids; i++)
+		{
+			printf("%d\n", fg_pids[i]);
+		}
+
 		/* BEGIN: TAKING INPUT */
 		bzero(line, sizeof(line));
 		if (argc == 2)
@@ -248,12 +254,20 @@ int main(int argc, char *argv[])
 				}
 				else
 				{ // parent process stores pid
+					printf("stored pid %d\n", pid);
+					printf("entered command %s\n", tokens[command_indices[j]]);
 					fg_pids[num_fg_pids++] = pid;
 				}
 			}
-			for (int i = 0; i < num_fg_pids; i++)
+			for (int i = 0; i <= num_fg_pids; i++)
 			{
-				waitpid(fg_pids[i], &status, 0);
+				// printf("PARALLEL WAITING: there is %d stored fg processes\n", num_fg_pids);
+				// for (int j = 0; j < num_fg_pids; j++)
+				// {
+				// 	printf("%d\n", fg_pids[j]);
+				// }
+				// printf("waiting for  fgpid %d\n", fg_pids[i]);
+				// waitpid(fg_pids[i], &status, 0);
 				// if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)
 				// {
 				// 	printf("Shell: Incorrect command\n");
@@ -264,7 +278,7 @@ int main(int argc, char *argv[])
 					fg_pids[j] = fg_pids[j + 1];
 				}
 				num_fg_pids--;
-			}
+						}
 		}
 		else if (is_sequence)
 		{
@@ -325,8 +339,7 @@ int main(int argc, char *argv[])
 				perror("fork");
 			}
 			else
-			{
-				// parent process
+			{ // parent process
 				wait(&status);
 			}
 
