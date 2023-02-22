@@ -46,7 +46,7 @@ char **tokenize(char *line)
 	tokens[tokenNo] = NULL;
 	return tokens;
 }
-void reap_child(status)
+void reap_child(int status)
 {
 	for (int i = 0; i < num_bg_pids; i++)
 	{
