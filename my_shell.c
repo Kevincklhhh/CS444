@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
 				num_commands++;
 			}
 		}
+
 		if (tokens[0] == NULL)
 		{
 			// Empty command,display prompt again
@@ -195,6 +196,8 @@ int main(int argc, char *argv[])
 			free(tokens);
 			exit(0);
 		}
+
+		// executing commands in different modes
 		if (is_background)
 		{
 			pid_t pid = fork(); // fork a child process
