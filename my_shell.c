@@ -51,6 +51,7 @@ void reap_child(int status)
 { // iterate over the list of background processes
 	for (int i = 0; i < MAX_NUM_TOKENS; i++)
 	{
+		print("%d, %d\n", i, bg_pids[i]);
 		if (bg_pids[i] != 0)
 		{
 			if (waitpid(bg_pids[i], &status, WNOHANG) < 0)
