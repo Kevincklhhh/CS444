@@ -46,18 +46,19 @@ char **tokenize(char *line)
 	tokens[tokenNo] = NULL;
 	return tokens;
 }
+
 void reap_child(int status)
-{
-	for (int i = 0; i < num_bg_pids; i++)
+{ // iterate over the list of background processes
+	for (int i = 0; i < MAX_NUM_TOKENS; i++)
 	{
-		if (waitpid(bg_pids[i], &status, WNOHANG) < 0)
+		if (bg_pids[i] != 0)
 		{
-			printf("Shell: Background process finished\n");
-			for (int j = i; j < num_bg_pids - 1; j++)
+			if (waitpid(bg_pids[i], &status, WNOHANG) < 0)
 			{
-				bg_pids[j] = bg_pids[j + 1];
+				printf("Shell: Background process finished\n");
+				bg_pids[i] = 0;
+				num_bg_pids--;
 			}
-			num_bg_pids--;
 		}
 	}
 }
@@ -195,7 +196,6 @@ int main(int argc, char *argv[])
 
 		if (is_background)
 		{
-			printf("executing command as background");
 			pid_t pid = fork(); // fork a child process
 			if (pid == 0)
 			{
