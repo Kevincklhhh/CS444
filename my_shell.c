@@ -151,8 +151,8 @@ int main(int argc, char *argv[])
 		int is_parallel = 0;
 
 		int command_indices[MAX_NUM_TOKENS]; // record the index of starting of a command in the tokens array
-		int num_commands = 0;
-		command_indices[num_commands] = 0;
+		int num_commands = 1;
+		command_indices[0] = 0;
 
 		for (i = 0; tokens[i] != NULL; i++)
 		{
@@ -165,15 +165,15 @@ int main(int argc, char *argv[])
 			{
 				is_sequence = 1;
 				tokens[i] = NULL;
-				num_commands++;
 				command_indices[num_commands] = i + 1;
+				num_commands++;
 			}
 			else if (strcmp(tokens[i], "&&&") == 0)
 			{
 				is_parallel = 1;
 				tokens[i] = NULL;
-				num_commands++;
 				command_indices[num_commands] = i + 1;
+				num_commands++;
 			}
 		}
 		// for (int j = 0; j<= num_commands; j++){
@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
 		}
 		else if (is_parallel)
 		{
-			for (int j = 0; j <= num_commands; j++)
+			for (int j = 0; j < num_commands; j++)
 			{ // iterate over all parsed commands and arguments
 				pid_t pid = fork();
 				if (pid == 0)
@@ -256,28 +256,28 @@ int main(int argc, char *argv[])
 				{ // parent process stores pid
 					// printf("stored pid %d\n", pid);
 					// printf("entered command %s\n", tokens[command_indices[j]]);
-					fg_pids[num_fg_pids++] = pid;
+					fg_pids[j] = pid;
+					num_fg_pids++;
 				}
 			}
-			for (int i = 0; i <= num_fg_pids; i++)
+			for (int i = 0; i < num_commands; i++)
 			{
-				// printf("waiting for  fgpid %d\n", fg_pids[i]);
-				waitpid(fg_pids[i], &status, 0);
-				// if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV)
-				// {
-				// 	printf("Shell: Incorrect command\n");
-				// }
-				// Remove the PID from the array
-				for (int j = i; j < num_fg_pids - 1; j++)
+				if (fg_pids[i] == 0)
 				{
-					fg_pids[j] = fg_pids[j + 1];
+					continue;
 				}
+				waitpid(fg_pids[i], &status, 0);
+				// if (WIFSIGNALED(status)) {
+				// printf("DEBUG: Parallel detect killed %d\n", pid_list[i]);
+				// }
+				fg_pids[i] = 0;
+				// printf("waiting for  fgpid %d\n", fg_pids[i]);
 				num_fg_pids--;
 			}
 		}
 		else if (is_sequence)
 		{
-			for (int j = 0; j <= num_commands; j++)
+			for (int j = 0; j < num_commands; j++)
 			{
 				if (sigint_received)
 				{
