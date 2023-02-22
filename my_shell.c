@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
 					fg_pids[num_fg_pids++] = pid;
 				}
 			}
-			for (int i = 0; i < num_fg_pids; i++)
+			for (int i = 0; i <= num_fg_pids; i++)
 			{
 				// printf("waiting for  fgpid %d\n", fg_pids[i]);
 				// waitpid(fg_pids[i], &status, 0);
