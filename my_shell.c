@@ -51,23 +51,11 @@ char **tokenize(char *line)
 // signal handler for SIGINT
 void sigint_handler(int sig)
 {
-	// printf("ctrlc pressed, terminating process ids:\n");
-	// for (int i = 0; i < num_fg_pids; i++)
-	// {
-	// 	printf("%d\n", fg_pids[i]);
-	// }
 	sigint_received = 1;
 	if (num_fg_pids == 0)
 	{
 		// No foreground processes to terminate
 		return;
-	}
-
-	if (num_fg_pids == 1)
-	{
-		// Terminate the current foreground process
-		printf("\n");
-		kill(fg_pids[0], SIGINT);
 	}
 	else
 	{
@@ -106,11 +94,6 @@ int main(int argc, char *argv[])
 
 	while (1)
 	{
-		// printf("there is %d stored fg processes\n", num_fg_pids);
-		// for (i = 0; i < num_fg_pids; i++)
-		// {
-		// 	printf("%d\n", fg_pids[i]);
-		// }
 
 		/* BEGIN: TAKING INPUT */
 		bzero(line, sizeof(line));
@@ -145,7 +128,7 @@ int main(int argc, char *argv[])
 
 		line[strlen(line)] = '\n'; // terminate with new line
 		tokens = tokenize(line);
-
+		sigint_received = 0;
 		int is_background = 0;
 		int is_sequence = 0;
 		int is_parallel = 0;
@@ -176,10 +159,6 @@ int main(int argc, char *argv[])
 				num_commands++;
 			}
 		}
-		// for (int j = 0; j<= num_commands; j++){
-		// 		printf("%s",tokens[command_indices[j]]);
-
-		// }
 		if (tokens[0] == NULL)
 		{
 			// Empty command - just display prompt again
@@ -238,12 +217,12 @@ int main(int argc, char *argv[])
 		}
 		else if (is_parallel)
 		{
-			for (int j = 0; j < num_commands; j++)
+			for (int i = 0; i < num_commands; i++)
 			{ // iterate over all parsed commands and arguments
 				pid_t pid = fork();
 				if (pid == 0)
 				{ // child process execute
-					execvp(tokens[command_indices[j]], &tokens[command_indices[j]]);
+					execvp(tokens[command_indices[i]], &tokens[command_indices[i]]);
 					printf("Shell: Incorrect command\n");
 					exit(1);
 				}
@@ -254,9 +233,7 @@ int main(int argc, char *argv[])
 				}
 				else
 				{ // parent process stores pid
-					// printf("stored pid %d\n", pid);
-					// printf("entered command %s\n", tokens[command_indices[j]]);
-					fg_pids[j] = pid;
+					fg_pids[i] = pid;
 					num_fg_pids++;
 				}
 			}
@@ -267,17 +244,13 @@ int main(int argc, char *argv[])
 					continue;
 				}
 				waitpid(fg_pids[i], &status, 0);
-				// if (WIFSIGNALED(status)) {
-				// printf("DEBUG: Parallel detect killed %d\n", pid_list[i]);
-				// }
 				fg_pids[i] = 0;
-				// printf("waiting for  fgpid %d\n", fg_pids[i]);
 				num_fg_pids--;
 			}
 		}
 		else if (is_sequence)
 		{
-			for (int j = 0; j < num_commands; j++)
+			for (int i = 0; i < num_commands; i++)
 			{
 				if (sigint_received)
 				{
@@ -287,7 +260,7 @@ int main(int argc, char *argv[])
 				pid_t pid = fork();
 				if (pid == 0)
 				{
-					execvp(tokens[command_indices[j]], &tokens[command_indices[j]]);
+					execvp(tokens[command_indices[i]], &tokens[command_indices[i]]);
 					exit(1);
 				}
 				else if (pid < 0)
